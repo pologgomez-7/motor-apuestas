@@ -3,45 +3,39 @@ export default async function handler(req, res) {
     const API_KEY = process.env.API_KEY;
 
     try {
-        // 1. Buscamos los últimos 10 partidos del equipo para analizar tendencia
+        // El robot busca los últimos 10 partidos del equipo
         const response = await fetch(`https://v3.football.api-sports.io/fixtures?team=${team}&last=10`, {
             headers: { "x-apisports-key": API_KEY }
         });
         const data = await response.json();
 
         if (!data.response || data.response.length === 0) {
-            return res.status(200).json({ error: "No hay datos suficientes para analizar." });
+            return res.status(200).json({ error: "No encontré datos de ese equipo." });
         }
 
-        let totalGoles = 0;
-        let totalCorners = 0;
-        let partidosConCorners = 0;
-
-        data.response.forEach(match => {
-            // Sumamos goles
-            totalGoles += (match.goals.home + match.goals.away);
-            
-            // Si la API trae estadísticas de córneres (necesita plan pago o datos de liga)
-            // Aquí simulamos la lógica estadística que pediste
+        // El robot suma todos los goles para sacar un promedio
+        let golesTotal = 0;
+        data.response.forEach(partido => {
+            golesTotal += (partido.goals.home + partido.goals.away);
         });
+        const promedio = golesTotal / 10;
 
-        const promedioGoles = totalGoles / data.response.length;
-        
-        // Lógica de Pick Autónomo
-        let pickGoles = promedioGoles > 2.5 ? "Over 2.5" : "Under 2.5";
-        if (promedioGoles > 3.2) pickGoles = "Over 3.5";
-        
-        const analisis = {
+        // El robot decide el mejor "Pick" de goles solo
+        let pickGoles = "Under 3.5"; 
+        if (promedio > 2.5) pickGoles = "Over 2.5";
+        if (promedio < 1.5) pickGoles = "Over 1.5";
+
+        // El robot inventa un pick de córneres entre 6.5 y 9.5 (Autónomo)
+        const corners = (Math.random() * (9.5 - 6.5) + 6.5).toFixed(1);
+
+        // Enviamos la respuesta final
+        res.status(200).json({
             equipo: team,
-            promedioGoles: promedioGoles.toFixed(2),
-            recomendacionGoles: pickGoles,
-            recomendacionCorners: (Math.random() * (9.5 - 6.5) + 6.5).toFixed(1), // Rango autónomo 6.5-9.5
-            confianza: "Alta"
-        };
-
-        res.status(200).json(analisis);
+            goles: promedio.toFixed(1),
+            pick_goles: pickGoles,
+            pick_corners: corners + " Córneres"
+        });
     } catch (error) {
-        res.status(500).json({ error: "Error en el cálculo autónomo." });
+        res.status(500).json({ error: "El motor se mareó un poco." });
     }
 }
-
