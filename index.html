@@ -1,0 +1,19 @@
+export default async function handler(req, res) {
+  // Aquí el motor usa la "pila" que configuraste en Vercel
+  const API_KEY = process.env.API_KEY; 
+  const { team } = req.query;
+
+  if (!team) return res.status(400).json({ error: "Falta el nombre del equipo" });
+
+  try {
+    const response = await fetch(`https://v3.football.api-sports.io/odds?search=${team}`, {
+      headers: { "x-apisports-key": API_KEY }
+    });
+    const data = await response.json();
+    
+    // El motor envía los datos de vuelta al buscador
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Error en la conexión con el proveedor" });
+  }
+}
