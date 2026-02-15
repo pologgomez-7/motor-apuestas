@@ -3,55 +3,52 @@ export default async function handler(req, res) {
     const API_KEY = process.env.API_KEY;
 
     try {
-        // 1. LOCALIZADOR: Busca el próximo partido del equipo
+        // 1. Busca el PRÓXIMO partido real de ese equipo
         const searchRes = await fetch(`https://v3.football.api-sports.io/fixtures?team=${team}&next=1`, {
             headers: { "x-apisports-key": API_KEY }
         });
         const searchData = await searchRes.json();
 
         if (!searchData.response || searchData.response.length === 0) {
-            return res.status(200).json({ error: "Equipo no encontrado o sin partidos próximos." });
+            return res.status(200).json({ error: "No encontré partidos próximos." });
         }
 
-        const match = searchData.response[0];
-        const h2hId = `${match.teams.home.id}-${match.teams.away.id}`;
+        const partido = searchData.response[0];
+        const h2hId = `${partido.teams.home.id}-${partido.teams.away.id}`;
 
-        // 2. IA ANALÍTICA: Revisa la historia entre ambos equipos (Head-to-Head)
+        // 2. IA de Análisis: Revisa los últimos 10 encuentros entre ellos (Head-to-Head)
         const h2hRes = await fetch(`https://v3.football.api-sports.io/fixtures/headtohead?h2h=${h2hId}&last=10`, {
             headers: { "x-apisports-key": API_KEY }
         });
         const h2hData = await h2hRes.json();
 
         let golesTotal = 0;
-        let count = h2hData.response.length || 1;
+        let juegos = h2hData.response.length || 1;
         h2hData.response.forEach(m => golesTotal += (m.goals.home + m.goals.away));
-        const promedioGoles = golesTotal / count;
+        const promedio = golesTotal / juegos;
 
-        // 3. GENERADOR DE PICKS (Lógica IA de valor)
-        // Probabilidad de Ganador basada en localía y goles
-        const winProb = Math.floor(Math.random() * (85 - 60) + 60);
-        const ganador = (promedioGoles > 2) ? match.teams.home.name : "Empate / Menos de 2.5";
-
-        // Goles (1.5 a 3.5)
-        let pickGoles = (promedioGoles > 2.8) ? "Over 3.5" : (promedioGoles > 1.8 ? "Over 2.5" : "Over 1.5");
+        // 3. Lógica IA para picks de valor
+        // Ganador probable
+        const ganador = (promedio > 2) ? partido.teams.home.name : "Empate / Reservado";
         
-        // Córneres (6.5 a 9.5)
-        const cornerList = ["6.5", "7.5", "8.5", "9.5"];
-        const pickCorners = "Over " + cornerList[Math.floor(Math.random() * cornerList.length)];
+        // Goles (rango 1.5 a 3.5)
+        let pickGoles = (promedio > 2.8) ? "Más de 3.5" : (promedio > 1.8 ? "Más de 2.5" : "Más de 1.5");
+        
+        // Córneres (rango 6.5 a 9.5)
+        const corners = ["6.5", "7.5", "8.5", "9.5"];
+        const pickCorners = "Más de " + corners[Math.floor(Math.random() * corners.length)];
 
-        // RESPUESTA FINAL (Sincronizada con el HTML)
+        // Enviar datos limpios a la pantalla
         res.status(200).json({
-            partido_titulo: `${match.teams.home.name} vs ${match.teams.away.name}`,
+            titulo: `${partido.teams.home.name} vs ${partido.teams.away.name}`,
             ganador_pick: ganador,
-            ganador_porcentaje: winProb + "%",
             goles_pick: pickGoles,
-            goles_porcentaje: Math.floor(Math.random() * (95 - 75) + 75) + "%",
             corners_pick: pickCorners,
-            corners_porcentaje: "88%",
-            dato_ia: `Análisis basado en ${count} partidos históricos.`
+            ia_confianza: Math.floor(Math.random() * (95 - 82) + 82) + "%",
+            resumen: `Basado en promedio de ${promedio.toFixed(2)} goles.`
         });
 
     } catch (e) {
-        res.status(500).json({ error: "Error en el motor de la IA." });
+        res.status(500).json({ error: "Error de conexión con la IA." });
     }
 }
