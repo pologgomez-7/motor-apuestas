@@ -1,54 +1,250 @@
-export default async function handler(req, res) {
-    const { team } = req.query;
-    const API_KEY = process.env.API_KEY;
+// API Route para análisis de partidos de fútbol
+// Archivo: /api/index.js
 
-    try {
-        // 1. Busca el PRÓXIMO partido real de ese equipo
-        const searchRes = await fetch(`https://v3.football.api-sports.io/fixtures?team=${team}&next=1`, {
-            headers: { "x-apisports-key": API_KEY }
-        });
-        const searchData = await searchRes.json();
+const FOOTBALL_API_KEY = process.env.FOOTBALL_API_KEY;
+const FOOTBALL_API_HOST = 'v3.football.api-sports.io';
 
-        if (!searchData.response || searchData.response.length === 0) {
-            return res.status(200).json({ error: "No encontré partidos próximos." });
+// Función para obtener partidos próximos
+async function getUpcomingMatches(team) {
+  try {
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    const fromDate = today.toISOString().split('T')[0];
+    const toDate = nextWeek.toISOString().split('T')[0];
+
+    const response = await fetch(
+      `https://${FOOTBALL_API_HOST}/fixtures?team=${team}&from=${fromDate}&to=${toDate}`,
+      {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': FOOTBALL_API_KEY,
+          'x-rapidapi-host': FOOTBALL_API_HOST
         }
+      }
+    );
 
-        const partido = searchData.response[0];
-        const h2hId = `${partido.teams.home.id}-${partido.teams.away.id}`;
-
-        // 2. IA de Análisis: Revisa los últimos 10 encuentros entre ellos (Head-to-Head)
-        const h2hRes = await fetch(`https://v3.football.api-sports.io/fixtures/headtohead?h2h=${h2hId}&last=10`, {
-            headers: { "x-apisports-key": API_KEY }
-        });
-        const h2hData = await h2hRes.json();
-
-        let golesTotal = 0;
-        let juegos = h2hData.response.length || 1;
-        h2hData.response.forEach(m => golesTotal += (m.goals.home + m.goals.away));
-        const promedio = golesTotal / juegos;
-
-        // 3. Lógica IA para picks de valor
-        // Ganador probable
-        const ganador = (promedio > 2) ? partido.teams.home.name : "Empate / Reservado";
-        
-        // Goles (rango 1.5 a 3.5)
-        let pickGoles = (promedio > 2.8) ? "Más de 3.5" : (promedio > 1.8 ? "Más de 2.5" : "Más de 1.5");
-        
-        // Córneres (rango 6.5 a 9.5)
-        const corners = ["6.5", "7.5", "8.5", "9.5"];
-        const pickCorners = "Más de " + corners[Math.floor(Math.random() * corners.length)];
-
-        // Enviar datos limpios a la pantalla
-        res.status(200).json({
-            titulo: `${partido.teams.home.name} vs ${partido.teams.away.name}`,
-            ganador_pick: ganador,
-            goles_pick: pickGoles,
-            corners_pick: pickCorners,
-            ia_confianza: Math.floor(Math.random() * (95 - 82) + 82) + "%",
-            resumen: `Basado en promedio de ${promedio.toFixed(2)} goles.`
-        });
-
-    } catch (e) {
-        res.status(500).json({ error: "Error de conexión con la IA." });
+    const data = await response.json();
+    
+    if (!data.response || data.response.length === 0) {
+      return { error: 'No se encontraron partidos próximos para este equipo' };
     }
+
+    return data.response;
+  } catch (error) {
+    console.error('Error fetching matches:', error);
+    return { error: 'Error al obtener datos de la API' };
+  }
+}
+
+// Función para obtener estadísticas del equipo
+async function getTeamStatistics(teamId, season = 2024) {
+  try {
+    const response = await fetch(
+      `https://${FOOTBALL_API_HOST}/teams/statistics?team=${teamId}&season=${season}&league=140`,
+      {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': FOOTBALL_API_KEY,
+          'x-rapidapi-host': FOOTBALL_API_HOST
+        }
+      }
+    );
+
+    const data = await response.json();
+    return data.response;
+  } catch (error) {
+    console.error('Error fetching team stats:', error);
+    return null;
+  }
+}
+
+// Función para búsqueda de equipos
+async function searchTeam(teamName) {
+  try {
+    const response = await fetch(
+      `https://${FOOTBALL_API_HOST}/teams?search=${encodeURIComponent(teamName)}`,
+      {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': FOOTBALL_API_KEY,
+          'x-rapidapi-host': FOOTBALL_API_HOST
+        }
+      }
+    );
+
+    const data = await response.json();
+    return data.response;
+  } catch (error) {
+    console.error('Error searching team:', error);
+    return [];
+  }
+}
+
+// Función de análisis con IA (algoritmo predictivo)
+function analyzeMatchWithAI(homeStats, awayStats, fixture) {
+  const analysis = {
+    confidence: 0,
+    predictions: {},
+    reasoning: []
+  };
+
+  // Análisis de forma reciente
+  const homeFormScore = calculateFormScore(homeStats?.form || '');
+  const awayFormScore = calculateFormScore(awayStats?.form || '');
+
+  // Análisis de goles
+  const homeGoalsAvg = homeStats?.goals?.for?.average?.home || 0;
+  const awayGoalsAvg = awayStats?.goals?.for?.average?.away || 0;
+  const homeGoalsAgainstAvg = homeStats?.goals?.against?.average?.home || 0;
+  const awayGoalsAgainstAvg = awayStats?.goals?.against?.average?.away || 0;
+
+  // Predicción de resultado
+  const homeAdvantage = 0.15; // 15% ventaja de local
+  const homeScore = (homeFormScore + (homeGoalsAvg * 10) - (homeGoalsAgainstAvg * 10)) * (1 + homeAdvantage);
+  const awayScore = (awayFormScore + (awayGoalsAvg * 10) - (awayGoalsAgainstAvg * 10));
+
+  const scoreDiff = homeScore - awayScore;
+
+  if (scoreDiff > 5) {
+    analysis.predictions.result = '1'; // Victoria local
+    analysis.confidence = Math.min(85, 60 + scoreDiff);
+    analysis.reasoning.push('El equipo local tiene mejor forma y estadísticas ofensivas');
+  } else if (scoreDiff < -5) {
+    analysis.predictions.result = '2'; // Victoria visitante
+    analysis.confidence = Math.min(85, 60 + Math.abs(scoreDiff));
+    analysis.reasoning.push('El equipo visitante muestra mejor rendimiento reciente');
+  } else {
+    analysis.predictions.result = 'X'; // Empate
+    analysis.confidence = 55;
+    analysis.reasoning.push('Ambos equipos tienen estadísticas similares');
+  }
+
+  // Predicción de goles
+  const totalGoalsExpected = (homeGoalsAvg + awayGoalsAvg + homeGoalsAgainstAvg + awayGoalsAgainstAvg) / 2;
+  
+  if (totalGoalsExpected > 2.5) {
+    analysis.predictions.goals = 'Over 2.5';
+    analysis.predictions.btts = 'Ambos marcan: Sí';
+    analysis.reasoning.push(`Se esperan ${totalGoalsExpected.toFixed(1)} goles en promedio`);
+  } else {
+    analysis.predictions.goals = 'Under 2.5';
+    analysis.predictions.btts = 'Ambos marcan: Posiblemente No';
+    analysis.reasoning.push('Se espera un partido cerrado con pocos goles');
+  }
+
+  // Predicción de córneres
+  const homeCorners = homeStats?.fixtures?.draws?.home || 0;
+  const awayCorners = awayStats?.fixtures?.draws?.away || 0;
+  const avgCorners = (homeCorners + awayCorners) / 2;
+
+  if (avgCorners > 5) {
+    analysis.predictions.corners = `Over 9.5 córneres`;
+  } else {
+    analysis.predictions.corners = `Under 9.5 córneres`;
+  }
+
+  return analysis;
+}
+
+// Calcular puntuación de forma basado en últimos 5 partidos
+function calculateFormScore(form) {
+  if (!form) return 0;
+  
+  let score = 0;
+  const matches = form.split('').reverse();
+  
+  matches.forEach((result, index) => {
+    const weight = 5 - index; // Más peso a partidos recientes
+    if (result === 'W') score += 3 * weight;
+    else if (result === 'D') score += 1 * weight;
+  });
+  
+  return score;
+}
+
+// Handler principal de la API
+export default async function handler(req, res) {
+  // Configurar CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const { team } = req.query;
+
+  if (!team) {
+    return res.status(400).json({ error: 'Se requiere el parámetro "team"' });
+  }
+
+  if (!FOOTBALL_API_KEY) {
+    return res.status(500).json({ 
+      error: 'API Key no configurada. Por favor configura FOOTBALL_API_KEY en las variables de entorno de Vercel' 
+    });
+  }
+
+  try {
+    // Buscar el equipo
+    const teams = await searchTeam(team);
+    
+    if (!teams || teams.length === 0) {
+      return res.status(404).json({ 
+        error: 'No se encontró el equipo. Intenta con otro nombre o verifica la ortografía.' 
+      });
+    }
+
+    const teamData = teams[0];
+    const teamId = teamData.team.id;
+
+    // Obtener partidos próximos
+    const matches = await getUpcomingMatches(teamId);
+
+    if (matches.error) {
+      return res.status(404).json(matches);
+    }
+
+    // Obtener estadísticas de ambos equipos para el primer partido
+    const firstMatch = matches[0];
+    const homeTeamId = firstMatch.teams.home.id;
+    const awayTeamId = firstMatch.teams.away.id;
+
+    const [homeStats, awayStats] = await Promise.all([
+      getTeamStatistics(homeTeamId),
+      getTeamStatistics(awayTeamId)
+    ]);
+
+    // Análisis con IA
+    const aiAnalysis = analyzeMatchWithAI(homeStats, awayStats, firstMatch);
+
+    // Preparar respuesta
+    const response = {
+      team: teamData.team,
+      nextMatch: {
+        fixture: firstMatch.fixture,
+        teams: firstMatch.teams,
+        league: firstMatch.league,
+        venue: firstMatch.fixture.venue
+      },
+      statistics: {
+        home: homeStats,
+        away: awayStats
+      },
+      aiAnalysis: aiAnalysis,
+      allMatches: matches.slice(0, 5) // Máximo 5 partidos
+    };
+
+    return res.status(200).json(response);
+
+  } catch (error) {
+    console.error('Error en el handler:', error);
+    return res.status(500).json({ 
+      error: 'Error interno del servidor',
+      details: error.message 
+    });
+  }
 }
