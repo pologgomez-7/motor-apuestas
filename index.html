@@ -1,42 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Mi Robot de Picks</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Predictor Pro</title>
     <style>
-        body { background: #0b0e14; color: white; font-family: sans-serif; text-align: center; }
-        .caja { background: #161b22; padding: 20px; border-radius: 20px; max-width: 400px; margin: auto; border: 2px solid #238636; }
-        input { padding: 10px; border-radius: 10px; width: 80%; }
-        button { background: #238636; color: white; padding: 10px; border-radius: 10px; cursor: pointer; margin-top: 10px; }
-        .resultado { background: #21262d; margin-top: 20px; padding: 15px; border-radius: 10px; text-align: left; }
-        .verde { color: #3fb950; font-weight: bold; }
+        body { font-family: 'Inter', sans-serif; background: #0a0c10; color: white; display: flex; justify-content: center; padding: 20px; }
+        .app-container { width: 100%; max-width: 500px; background: #12151c; padding: 30px; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #232833; }
+        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 12px; border: 1px solid #2d3343; background: #0a0c10; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #00c853; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #00e676; transform: translateY(-2px); }
+        .pick-card { margin-top: 30px; padding: 20px; border-radius: 15px; background: #1c212d; border-left: 5px solid #00c853; text-align: left; }
+        .value { color: #00b0ff; font-weight: bold; font-size: 1.2em; }
+        .percentage { background: #00c85322; color: #00c853; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; margin-left: 10px; }
     </style>
 </head>
 <body>
-    <div class="caja">
-        <h1>🤖 Robot de Picks</h1>
-        <input type="text" id="nombre" placeholder="Escribe un equipo...">
-        <button onclick="buscar()">¡Calcular Pick!</button>
-        <div id="pantalla"></div>
+    <div class="app-container">
+        <h2 style="margin:0">🤖 Analizador IA Predictor</h2>
+        <p style="color:#8b949e">Ingresa un equipo para analizar su próximo partido</p>
+        
+        <input type="text" id="equipo" placeholder="Ej: Cali, Real Madrid, Nacional...">
+        <button onclick="ejecutarIA()">Generar Pick de Valor</button>
+
+        <div id="resultado"></div>
     </div>
 
     <script>
-        async function buscar() {
-            const eq = document.getElementById('nombre').value;
-            const pan = document.getElementById('pantalla');
-            pan.innerHTML = "Pensando...";
+        async function ejecutarIA() {
+            const eq = document.getElementById('equipo').value;
+            const resDiv = document.getElementById('resultado');
+            if(!eq) return;
 
-            const res = await fetch(`/api/index?team=${eq}`);
-            const d = await res.json();
+            resDiv.innerHTML = "<p>🔄 La IA está procesando estadísticas...</p>";
 
-            // Aquí el cuerpo recibe las piezas que el cerebro envió
-            pan.innerHTML = `
-                <div class="resultado">
-                    <p>📍 Equipo: ${d.equipo_nombre}</p>
-                    <p>⚽ Goles: <span class="verde">${d.recomendacion_goles}</span></p>
-                    <p>🚩 Córneres: <span class="verde">${d.recomendacion_corners}</span></p>
-                    <p>📊 Promedio: ${d.promedio_goles}</p>
-                    <p>⭐ Confianza: ${d.confianza}</p>
-                </div>`;
+            try {
+                const response = await fetch(`/api/index?team=${eq}`);
+                const data = await response.json();
+
+                if(data.error) {
+                    resDiv.innerHTML = `<p style="color:#ff5252">❌ ${data.error}</p>`;
+                    return;
+                }
+
+                resDiv.innerHTML = `
+                    <div class="pick-card">
+                        <div style="font-size:0.9em; color:#8b949e; margin-bottom:10px;">PRONÓSTICO: ${data.partido}</div>
+                        <p>🏆 Ganador: <span class="value">${data.ganador}</span> <span class="percentage">${data.confianza_ganador}</span></p>
+                        <p>⚽ Goles: <span class="value">${data.goles}</span> <span class="percentage">${data.confianza_goles}</span></p>
+                        <p>🚩 Córneres: <span class="value">${data.corners}</span> <span class="percentage">${data.confianza_corners}</span></p>
+                        <hr style="border:0; border-top:1px solid #2d3343; margin:15px 0;">
+                        <small style="color:#8b949e">📝 ${data.detalle}</small>
+                    </div>`;
+            } catch (e) {
+                resDiv.innerHTML = "<p style='color:#ff5252'>❌ Error de conexión con el servidor IA.</p>";
+            }
         }
     </script>
 </body>
