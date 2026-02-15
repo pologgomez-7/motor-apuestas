@@ -2,42 +2,49 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Motor de Análisis Autónomo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador IA de Picks</title>
     <style>
-        body { font-family: sans-serif; background: #0b0e14; color: white; text-align: center; }
-        .card { background: #1c212d; padding: 20px; border-radius: 15px; max-width: 400px; margin: 20px auto; border: 1px solid #3b82f6; }
-        .pick { font-size: 24px; font-weight: bold; color: #10b981; margin: 10px 0; }
-        .stats { color: #94a3b8; font-size: 14px; }
-        button { background: #3b82f6; border: none; padding: 10px 20px; color: white; border-radius: 5px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0b0e14; color: white; text-align: center; padding: 20px; }
+        .container { max-width: 450px; margin: auto; background: #161b22; padding: 25px; border-radius: 20px; border: 1px solid #30363d; box-shadow: 0 15px 35px rgba(0,0,0,0.7); }
+        input { width: 85%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid #30363d; background: #0d1117; color: white; font-size: 16px; }
+        button { background: #238636; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 90%; font-size: 16px; }
+        .result-card { margin-top: 25px; padding: 20px; border-radius: 15px; background: #21262d; border-left: 6px solid #238636; text-align: left; }
+        .pick-value { color: #58a6ff; font-size: 20px; font-weight: bold; display: block; margin-top: 5px; }
+        .badge { background: #388bfd33; color: #58a6ff; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
     </style>
 </head>
 <body>
-    <h1>🤖 Analizador IA de Apuestas</h1>
-    <input type="text" id="team" placeholder="Nombre del equipo..." style="padding: 10px; border-radius: 5px;">
-    <button onclick="generarAnálisis()">Generar Pick</button>
-
-    <div id="resultado"></div>
+    <div class="container">
+        <h1>🤖 Picks Autónomos IA</h1>
+        <p>Introduce un equipo para generar pronóstico</p>
+        <input type="text" id="equipo" placeholder="Ej: Real Madrid">
+        <button onclick="analizar()">Generar Mejor Opción</button>
+        <div id="resultado"></div>
+    </div>
 
     <script>
-        async function generarAnálisis() {
-            const team = document.getElementById('team').value;
+        async function analizar() {
+            const eq = document.getElementById('equipo').value;
             const resDiv = document.getElementById('resultado');
-            resDiv.innerHTML = "Calculando probabilidades...";
+            if(!eq) return;
+            resDiv.innerHTML = "<p>Calculando promedios y picks...</p>";
 
-            const res = await fetch(`/api/index?team=${team}`);
-            const data = await res.json();
-
-            resDiv.innerHTML = `
-                <div class="card">
-                    <h3>Análisis para: ${data.equipo}</h3>
-                    <div class="stats">Promedio Goles (Last 10): ${data.promedioGoles}</div>
-                    <p>Mejor Opción Goles:</p>
-                    <div class="pick">${data.recomendacionGoles}</div>
-                    <p>Mejor Opción Córneres:</p>
-                    <div class="pick">${data.recomendacionCorners} Córneres</div>
-                    <div style="color: #fbbf24">Nivel de Confianza: ${data.confianza}</div>
-                </div>
-            `;
+            try {
+                const r = await fetch(`/api/index?team=${eq}`);
+                const d = await r.json();
+                
+                resDiv.innerHTML = `
+                    <div class="result-card">
+                        <span class="badge">Análisis Completo: ${d.equipo}</span>
+                        <p>🎯 Mejor Pick Goles: <span class="pick-value">${d.pick_goles}</span></p>
+                        <p>🚩 Pick Córneres: <span class="pick-value">${d.pick_corners}</span></p>
+                        <p>📊 Confianza IA: <span style="color:#3fb950">${d.probabilidad}</span></p>
+                        <small style="color:#8b949e">Promedio Goles (Last 10): ${d.goles}</small>
+                    </div>`;
+            } catch (e) {
+                resDiv.innerHTML = "<p style='color:#f85149'>❌ Error: Verifica tu API_KEY en Vercel.</p>";
+            }
         }
     </script>
 </body>
