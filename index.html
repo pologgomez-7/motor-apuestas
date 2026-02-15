@@ -3,57 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Predictor v2.0</title>
+    <title>IA Predictor v2</title>
     <style>
-        body { background: #0b0e14; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .card { width: 100%; max-width: 450px; background: #161b22; padding: 30px; border-radius: 25px; border: 1px solid #30363d; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 12px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #238636; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-        button:hover { background: #2ea043; }
-        .res-box { margin-top: 25px; padding: 20px; border-radius: 15px; background: #21262d; border-left: 6px solid #238636; text-align: left; display: none; }
-        .valor { color: #58a6ff; font-weight: bold; }
-        .badge { background: #23863622; color: #3fb950; padding: 4px 10px; border-radius: 8px; font-size: 12px; float: right; }
+        body { background: #0b0e14; color: white; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .app { width: 100%; max-width: 400px; background: #161b22; padding: 25px; border-radius: 20px; border: 1px solid #30363d; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #238636; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+        .box { margin-top: 20px; padding: 15px; border-radius: 10px; background: #21262d; text-align: left; border-left: 5px solid #238636; display: none; }
+        .blue { color: #58a6ff; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2 style="margin:0">🤖 IA Predictor Pro</h2>
-        <p style="color:#8b949e">Busca un equipo para analizar su próximo partido</p>
-        
-        <input type="text" id="equipo" placeholder="Ej: Cali, Nacional, Real Madrid...">
-        <button onclick="iniciarIA()">ANALIZAR PARTIDO</button>
-
-        <div id="resultado" class="res-box"></div>
+    <div class="app">
+        <h2>🤖 Analizador IA Pro</h2>
+        <input type="text" id="eq" placeholder="Ej: Cali o Real Madrid">
+        <button onclick="buscar()">Generar Análisis</button>
+        <div id="res" class="box"></div>
     </div>
 
     <script>
-        async function iniciarIA() {
-            const eq = document.getElementById('equipo').value;
-            const resDiv = document.getElementById('resultado');
-            if(!eq) return;
+        async function buscar() {
+            const input = document.getElementById('eq').value;
+            const div = document.getElementById('res');
+            if(!input) return;
 
-            resDiv.style.display = "block";
-            resDiv.innerHTML = "🧠 La IA está procesando estadísticas históricas...";
+            div.style.display = "block";
+            div.innerHTML = "🧠 Analizando estadísticas históricas...";
 
             try {
-                const response = await fetch(`/api/index?team=${eq}`);
-                const d = await response.json();
+                const r = await fetch(`/api/index?team=${input}`);
+                const d = await r.json();
 
                 if(d.error) {
-                    resDiv.innerHTML = `<p style="color:#f85149">❌ ${d.error}</p>`;
+                    div.innerHTML = `<p style="color:red">${d.error}</p>`;
                     return;
                 }
 
-                resDiv.innerHTML = `
-                    <div style="margin-bottom:15px; font-size:14px; color:#8b949e">PRÓXIMO: ${d.partido_titulo}</div>
-                    <p>🏆 Ganador: <span class="valor">${d.ganador_pick}</span> <span class="badge">${d.ganador_porcentaje}</span></p>
-                    <p>⚽ Goles: <span class="valor">${d.goles_pick}</span> <span class="badge">${d.goles_porcentaje}</span></p>
-                    <p>🚩 Córneres: <span class="valor">${d.corners_pick}</span> <span class="badge">${d.corners_porcentaje}</span></p>
-                    <hr style="border:0; border-top:1px solid #30363d; margin:15px 0;">
-                    <small style="color:#8b949e">🤖 ${d.dato_ia}</small>
+                div.innerHTML = `
+                    <small style="color:#8b949e">PRÓXIMO PARTIDO:</small>
+                    <p><b>${d.titulo}</b></p>
+                    <p>🏆 Ganador: <span class="blue">${d.ganador_pick}</span></p>
+                    <p>⚽ Goles: <span class="blue">${d.goles_pick}</span></p>
+                    <p>🚩 Córneres: <span class="blue">${d.corners_pick}</span></p>
+                    <p>📈 Confianza IA: <span style="color:#3fb950">${d.ia_confianza}</span></p>
+                    <hr style="border:0; border-top:1px solid #30363d">
+                    <small style="color:#8b949e">${d.resumen}</small>
                 `;
             } catch (e) {
-                resDiv.innerHTML = "<p style='color:#f85149'>❌ Error: El cerebro no responde.</p>";
+                div.innerHTML = "Error al conectar con el motor.";
             }
         }
     </script>
