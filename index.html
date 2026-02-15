@@ -3,54 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Predictor Pro</title>
+    <title>IA Predictor v2.0</title>
     <style>
-        body { background: #0d1117; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 400px; margin: auto; background: #161b22; padding: 25px; border-radius: 20px; border: 1px solid #30363d; }
-        input { width: 90%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid #30363d; background: #0d1117; color: white; }
-        button { width: 95%; padding: 12px; background: #238636; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        .resultado-ia { margin-top: 20px; text-align: left; background: #21262d; padding: 15px; border-radius: 10px; border-left: 5px solid #238636; }
-        .blue { color: #58a6ff; font-weight: bold; }
+        body { background: #0b0e14; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .card { width: 100%; max-width: 450px; background: #161b22; padding: 30px; border-radius: 25px; border: 1px solid #30363d; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 12px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #238636; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:hover { background: #2ea043; }
+        .res-box { margin-top: 25px; padding: 20px; border-radius: 15px; background: #21262d; border-left: 6px solid #238636; text-align: left; display: none; }
+        .valor { color: #58a6ff; font-weight: bold; }
+        .badge { background: #23863622; color: #3fb950; padding: 4px 10px; border-radius: 8px; font-size: 12px; float: right; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🤖 Analizador IA Universal</h2>
-        <p>Escribe cualquier equipo (Cali, Nacional, etc.)</p>
-        <input type="text" id="equipoInput" placeholder="Ej: Real Madrid">
-        <button onclick="correrIA()">Generar Pick de Valor</button>
-        <div id="resultado"></div>
+    <div class="card">
+        <h2 style="margin:0">🤖 IA Predictor Pro</h2>
+        <p style="color:#8b949e">Busca un equipo para analizar su próximo partido</p>
+        
+        <input type="text" id="equipo" placeholder="Ej: Cali, Nacional, Real Madrid...">
+        <button onclick="iniciarIA()">ANALIZAR PARTIDO</button>
+
+        <div id="resultado" class="res-box"></div>
     </div>
 
     <script>
-        async function correrIA() {
-            const eq = document.getElementById('equipoInput').value;
+        async function iniciarIA() {
+            const eq = document.getElementById('equipo').value;
             const resDiv = document.getElementById('resultado');
             if(!eq) return;
 
-            resDiv.innerHTML = "La IA está analizando estadísticas...";
+            resDiv.style.display = "block";
+            resDiv.innerHTML = "🧠 La IA está procesando estadísticas históricas...";
 
             try {
-                const r = await fetch(`/api/index?team=${eq}`);
-                const d = await r.json();
+                const response = await fetch(`/api/index?team=${eq}`);
+                const d = await response.json();
 
                 if(d.error) {
-                    resDiv.innerHTML = `<p style="color:red">${d.error}</p>`;
+                    resDiv.innerHTML = `<p style="color:#f85149">❌ ${d.error}</p>`;
                     return;
                 }
 
                 resDiv.innerHTML = `
-                    <div class="resultado-ia">
-                        <small>PRÓXIMO PARTIDO:</small>
-                        <p><b>${d.info_partido}</b></p>
-                        <p>🎯 Goles: <span class="blue">${d.recomendacion_goles}</span></p>
-                        <p>🚩 Córneres: <span class="blue">${d.recomendacion_corners}</span></p>
-                        <p>📊 Confianza IA: <span style="color:#3fb950">${d.ia_confianza}</span></p>
-                        <hr style="border:0; border-top:1px solid #30363d">
-                        <small>Basado en promedio de ${d.promedio_historico} goles.</small>
-                    </div>`;
+                    <div style="margin-bottom:15px; font-size:14px; color:#8b949e">PRÓXIMO: ${d.partido_titulo}</div>
+                    <p>🏆 Ganador: <span class="valor">${d.ganador_pick}</span> <span class="badge">${d.ganador_porcentaje}</span></p>
+                    <p>⚽ Goles: <span class="valor">${d.goles_pick}</span> <span class="badge">${d.goles_porcentaje}</span></p>
+                    <p>🚩 Córneres: <span class="valor">${d.corners_pick}</span> <span class="badge">${d.corners_porcentaje}</span></p>
+                    <hr style="border:0; border-top:1px solid #30363d; margin:15px 0;">
+                    <small style="color:#8b949e">🤖 ${d.dato_ia}</small>
+                `;
             } catch (e) {
-                resDiv.innerHTML = "Error al conectar con la IA.";
+                resDiv.innerHTML = "<p style='color:#f85149'>❌ Error: El cerebro no responde.</p>";
             }
         }
     </script>
