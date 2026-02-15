@@ -1,54 +1,42 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Picks - Autónomo</title>
+    <title>Mi Robot de Picks</title>
     <style>
-        body { font-family: sans-serif; background: #0d1117; color: white; text-align: center; padding: 20px; }
-        .card { background: #161b22; border: 1px solid #30363d; padding: 20px; border-radius: 15px; max-width: 400px; margin: auto; }
-        input { padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; width: 80%; }
-        button { background: #238636; color: white; border: none; padding: 12px; border-radius: 8px; width: 85%; margin-top: 10px; cursor: pointer; font-weight: bold; }
-        .resultado-box { margin-top: 20px; background: #21262d; padding: 15px; border-radius: 10px; text-align: left; border-left: 5px solid #238636; }
-        .valor { color: #58a6ff; font-weight: bold; font-size: 1.2em; }
+        body { background: #0b0e14; color: white; font-family: sans-serif; text-align: center; }
+        .caja { background: #161b22; padding: 20px; border-radius: 20px; max-width: 400px; margin: auto; border: 2px solid #238636; }
+        input { padding: 10px; border-radius: 10px; width: 80%; }
+        button { background: #238636; color: white; padding: 10px; border-radius: 10px; cursor: pointer; margin-top: 10px; }
+        .resultado { background: #21262d; margin-top: 20px; padding: 15px; border-radius: 10px; text-align: left; }
+        .verde { color: #3fb950; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>🤖 Robot de Picks IA</h2>
-        <input type="text" id="inputEquipo" placeholder="Ej: Real Madrid">
-        <button onclick="analizarEquipo()">Generar Pick Autónomo</button>
+    <div class="caja">
+        <h1>🤖 Robot de Picks</h1>
+        <input type="text" id="nombre" placeholder="Escribe un equipo...">
+        <button onclick="buscar()">¡Calcular Pick!</button>
         <div id="pantalla"></div>
     </div>
 
     <script>
-        async function analizarEquipo() {
-            const eq = document.getElementById('inputEquipo').value;
-            const caja = document.getElementById('pantalla');
-            if(!eq) return;
-            
-            caja.innerHTML = "Analizando últimos 10 partidos...";
+        async function buscar() {
+            const eq = document.getElementById('nombre').value;
+            const pan = document.getElementById('pantalla');
+            pan.innerHTML = "Pensando...";
 
-            try {
-                const r = await fetch(`/api/index?team=${eq}`);
-                const d = await r.json();
+            const res = await fetch(`/api/index?team=${eq}`);
+            const d = await res.json();
 
-                if(d.error) {
-                    caja.innerHTML = `<p style="color:red">${d.error}</p>`;
-                    return;
-                }
-
-                caja.innerHTML = `
-                    <div class="resultado-box">
-                        <p>📍 Equipo: <b>${d.equipo_nombre}</b></p>
-                        <p>⚽ Goles (Promedio): <b>${d.promedio_goles}</b></p>
-                        <p>🎯 Mejor Opción: <span class="valor">${d.recomendacion_goles}</span></p>
-                        <p>🚩 Córneres: <span class="valor">${d.recomendacion_corners}</span></p>
-                        <p>📈 Confianza: <span style="color:#3fb950">${d.confianza}</span></p>
-                    </div>`;
-            } catch (e) {
-                caja.innerHTML = "Error al conectar con el cerebro.";
-            }
+            // Aquí el cuerpo recibe las piezas que el cerebro envió
+            pan.innerHTML = `
+                <div class="resultado">
+                    <p>📍 Equipo: ${d.equipo_nombre}</p>
+                    <p>⚽ Goles: <span class="verde">${d.recomendacion_goles}</span></p>
+                    <p>🚩 Córneres: <span class="verde">${d.recomendacion_corners}</span></p>
+                    <p>📊 Promedio: ${d.promedio_goles}</p>
+                    <p>⭐ Confianza: ${d.confianza}</p>
+                </div>`;
         }
     </script>
 </body>
