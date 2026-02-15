@@ -1,0 +1,50 @@
+{
+  "name": "analizador-ia-pro",
+  "version": "2.0.0",
+  "description": "Analizador inteligente de partidos de fútbol con IA",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "football",
+    "soccer",
+    "predictions",
+    "ai",
+    "betting",
+    "analytics"
+  ],
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "engines": {
+    "node": ">=14.x"
+  }
+}
+```
+
+5. **Scroll abajo** → Click **"Commit changes"**
+6. **Confirma** el commit
+
+### SI NO EXISTE:
+1. **En la página principal del repo**, click en **"Add file"** → **"Create new file"**
+2. **En el nombre del archivo** escribe: `package.json`
+3. **Pega el código** de arriba
+4. **Scroll abajo** → Click **"Commit new file"**
+
+---
+
+## 📁 3. Estructura Final de tu Proyecto
+
+Así debe verse tu repositorio de GitHub:
+```
+tu-repositorio/
+├── api/
+│   └── index.js          ← Archivo dentro de carpeta "api"
+├── index.html            ← En la raíz
+├── vercel.json           ← En la raíz
+└── package.json          ← En la raíz
